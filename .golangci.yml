@@ -1,0 +1,84 @@
+---
+linters-settings:
+  depguard:
+    list-type: blacklist
+    include-go-root: false
+    packages:
+      - github.com/davecgh/go-spew/spew
+  dupl:
+    threshold: 100
+  errcheck:
+    check-type-assertions: false
+    check-blank: true
+  funlen:
+    lines: 60
+    statements: 40
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    disabled-checks:
+      - unnamedResult
+      - hugeParam
+    enabled-tags:
+      - performance
+      - style
+      - diagnostic
+      - experimental
+      - opinionated
+  gocyclo:
+    min-complexity: 15
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/ashishbhate/mmfuse
+  golint:
+    min-confidence: 0.8
+  govet:
+    check-shadowing: false
+  lll:
+    line-length: 96
+    tab-width: 1
+  maligned:
+    suggest-new: true
+  nakedret:
+    max-func-lines: 30
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+  unparam:
+    check-exported: false
+  unused:
+    check-exported: false
+issues:
+  exclude-use-default: false
+  exclude-rules:
+      - linters:
+          - golint
+        text: "Id.*should be.*ID." # to be consistent with the mattermost convention
+
+linters:
+  disable-all: true
+  enable:
+      - bodyclose
+      - depguard
+      - dupl
+      - errcheck
+      - funlen
+      - goconst
+      - gocritic
+      - gocyclo
+      - gofmt
+      - goimports
+      - golint
+      - govet
+      - lll
+      - maligned
+      - nakedret
+      - prealloc
+      - unparam
+      - unused
+run:
+  modules-download-mode: vendor
+  timeout: 10s
