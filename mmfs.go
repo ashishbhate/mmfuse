@@ -228,7 +228,11 @@ func (uf *UnreadFile) Attr(_ context.Context, a *fuse.Attr) error {
 // satisfies the fs.HandleReadAller interace
 func (uf *UnreadFile) ReadAll(_ context.Context) ([]byte, error) {
 	// TODO use ctx to timeout calls
-	text, err := uf.mmclient.GetChannelUnread(uf.channelID)
+	postList, err := uf.mmclient.GetChannelUnread(uf.channelID)
+	if err != nil {
+		return nil, err
+	}
+	text, err := uf.mmclient.FormatPostsForDisplay(postList)
 	if err != nil {
 		return nil, err
 	}

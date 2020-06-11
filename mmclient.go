@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 )
@@ -127,23 +128,12 @@ func (mc *MMClient) normalizeChannelName(c *model.Channel) (string, error) {
 }
 
 // GetChannelUnread returns a string containing unread messages in the given channel
-func (mc *MMClient) GetChannelUnread(channelId string) (string, error) {
+func (mc *MMClient) GetChannelUnread(channelId string) (*model.PostList, error) {
 	postList, resp := mc.client.GetPostsAroundLastUnread(mc.user.Id, channelId, 0, 200)
 	if resp.StatusCode != 200 {
-		return "", resp.Error
+		return nil, resp.Error
 	}
-	var text string
-	order := postList.Order
-	for _, o := range order {
-		post := postList.Posts[o]
-		user, resp := mc.client.GetUser(post.UserId, "")
-		if resp.StatusCode != 200 {
-			return "", resp.Error
-		}
-		text = fmt.Sprintf("%s\n%s [%s]: %s",
-			text, user.Username, humanTime(post.CreateAt), post.Message)
-	}
-	return text, nil
+	return postList, nil
 }
 
 // MarkChannelAsRead marks the given channel as read
@@ -153,4 +143,24 @@ func (mc *MMClient) MarkChannelAsRead(channelId string) error {
 		return resp.Error
 	}
 	return nil
+}
+
+// FormatPostsForDisplay formosts a mattermost post for display
+func (mc *MMClient) FormatPostsForDisplay(postList *model.PostList) (string, error) {
+	var text strings.Builder
+	order := postList.Order
+	for i := len(order) - 1; i >= 0; i-- {
+		post := postList.Posts[order[i]]
+		user, resp := mc.client.GetUser(post.UserId, "")
+		if resp.StatusCode != 200 {
+			return "", resp.Error
+		}
+		id := post.Id
+		if post.ParentId != "" {
+			id = post.ParentId
+		}
+		fmt.Fprintf(&text, "%s <%s> %s: %s\n",
+			humanTime(post.CreateAt), id[len(id)-6:], user.Username, post.Message)
+	}
+	return text.String(), nil
 }

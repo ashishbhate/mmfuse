@@ -35,5 +35,5 @@ func loadCert(caCertPath string) *http.Client {
 }
 
 func humanTime(msec int64) string {
-	return time.Unix(msec/1000, 0).Format(time.RFC822Z)
+	return time.Unix(msec/1000, 0).Format("2006-01-02 15:04:05")
 }
