@@ -55,6 +55,10 @@ issues:
   exclude-use-default: false
   exclude-rules:
       - linters:
+          - unparam
+        text: "error. is always nil" # FUSE interface implementations
+
+      - linters:
           - golint
         text: "Id.*should be.*ID." # to be consistent with the mattermost convention
 
