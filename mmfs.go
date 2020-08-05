@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"syscall"
 
@@ -130,6 +131,11 @@ func NewMMTeam(team *model.Team, client *MMClient) (*MMTeam, error) {
 			channelID: channel.Id,
 			inode:     fs.GenerateDynamicInode(mmChannel.inode, "unread"),
 		}
+		mmChannel.inFile = &InFile{
+			mmclient:  client,
+			channelID: channel.Id,
+			inode:     fs.GenerateDynamicInode(mmChannel.inode, "in"),
+		}
 		mmTeam.mmChannels[channel.Name] = mmChannel
 	}
 	return mmTeam, nil
@@ -176,6 +182,7 @@ type MMChannel struct {
 	inode      uint64
 	client     *MMClient
 	unreadFile *UnreadFile
+	inFile     *InFile
 }
 
 // Attr fills attr with the standard metadata for the node.
@@ -190,8 +197,11 @@ func (mmc *MMChannel) Attr(_ context.Context, a *fuse.Attr) error {
 // directory (channel). Currently only an unread file is supported.
 // Satisfies the fs.NodeStringLookuper interface
 func (mmc *MMChannel) Lookup(_ context.Context, name string) (fs.Node, error) {
-	if name != "unread" {
-		return nil, syscall.ENOENT
+	switch name {
+	case "unread":
+		return mmc.unreadFile, nil
+	case "in":
+		return mmc.inFile, nil
 	}
 	return mmc.unreadFile, nil
 }
@@ -204,6 +214,11 @@ func (mmc *MMChannel) ReadDirAll(_ context.Context) ([]fuse.Dirent, error) {
 		{
 			Inode: mmc.unreadFile.inode,
 			Name:  "unread",
+			Type:  fuse.DT_File,
+		},
+		{
+			Inode: mmc.inFile.inode,
+			Name:  "in",
 			Type:  fuse.DT_File,
 		},
 	}, nil
@@ -225,7 +240,7 @@ func (uf *UnreadFile) Attr(_ context.Context, a *fuse.Attr) error {
 }
 
 // ReadAll returns the unread text of the corresponding channel
-// satisfies the fs.HandleReadAller interace
+// satisfies the fs.HandleReadAller interface
 func (uf *UnreadFile) ReadAll(_ context.Context) ([]byte, error) {
 	// TODO use ctx to timeout calls
 	postList, err := uf.mmclient.GetChannelUnread(uf.channelID)
@@ -253,4 +268,46 @@ func (uf *UnreadFile) Open(_ context.Context, _ *fuse.OpenRequest, resp *fuse.Op
 	fs.Handle, error) {
 	resp.Flags = fuse.OpenDirectIO | fuse.OpenNonSeekable
 	return uf, nil
+}
+
+// InFile models a file used to write data to a channel
+type InFile struct {
+	mmclient  *MMClient
+	channelID string
+	inode     uint64
+}
+
+// Attr fills attr with the standard metadata for the InFile.
+// satisfies the fs.Node interface
+func (ifl *InFile) Attr(_ context.Context, a *fuse.Attr) error {
+	a.Inode = ifl.inode
+	a.Mode = 0o333
+	return nil
+}
+
+// Write posts a message to the channel
+// satisfies the fs.HandleWriter interface
+func (ifl *InFile) Write(
+	_ context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse,
+) error {
+	err := ifl.mmclient.CreatePost(ifl.channelID, req.Data)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	resp.Size = len(req.Data)
+	return nil
+}
+
+// Open opens the InFile
+// Reads for a file are done upto the size reported by Attr. We can't know
+// the unread file content (and therefore size) until we query the
+// mattermost server in the ReadAll method. We set the file in DirectIO mode to
+// get around this.
+func (ifl *InFile) Open(
+	_ context.Context, _ *fuse.OpenRequest, resp *fuse.OpenResponse,
+) (fs.Handle, error) {
+
+	resp.Flags = fuse.OpenDirectIO | fuse.OpenNonSeekable
+	return ifl, nil
 }

@@ -58,7 +58,7 @@ func (mc *MMClient) GetTeams() ([]*model.Team, error) {
 // GetChannels returns a list of mattermost channels in a given team the user belongs to
 func (mc *MMClient) GetChannels(teamId string) ([]*model.Channel, error) {
 	channels, resp := mc.client.GetChannelsForTeamForUser(
-		teamId, mc.user.Id, false, mc.teamsToChannelsEtag[teamId])
+		teamId, "me", false, mc.teamsToChannelsEtag[teamId])
 	if resp.StatusCode != 200 {
 		return nil, resp.Error
 	}
@@ -163,4 +163,18 @@ func (mc *MMClient) FormatPostsForDisplay(postList *model.PostList) (string, err
 			humanTime(post.CreateAt), id[len(id)-6:], user.Username, post.Message)
 	}
 	return text.String(), nil
+}
+
+// CreatePost sends a text post to the given channel
+func (mc *MMClient) CreatePost(channelId string, content []byte) error {
+	post := model.Post{
+		UserId:    mc.user.Id,
+		ChannelId: channelId,
+		Message:   string(content),
+	}
+	_, resp := mc.client.CreatePost(&post)
+	if resp.StatusCode != 201 {
+		return resp.Error
+	}
+	return nil
 }
