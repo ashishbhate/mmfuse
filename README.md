@@ -31,26 +31,31 @@ umount MOUNTPOINT
    |- root
       |- team1
       |  |- channel1
+      |  |  |- in
       |  |  |- unread
       |  |
       |  |
       |  |- DM1
+      |     |- in
       |     |- unread
       |
       |- team1
          |- channel1
+         |  |- in
          |  |- unread
          |
          |- DM1
+            |- in
             |- unread
    ```
 
-2. Currently only an "unread" file containing unread messages from the corresponding channel is implemented.
-   An "in" file to send messages and an "out" file containing messages since mounting are planned.
+2. The "unread" file contains unread messages from the corresponding channel.
    The message display format is:
    ```
-   DateTime <PostId> Username: Message
+   DateTime <ThreadId> Username: Message
    ```
+
+3. The "in" file can be written to to post messages to the channel.
 
 3. The code does not sync state. For example, if you're added to a new team or join a new channel,
    you'll need to remount the filesystem to see these changes. Support for live syncing of state is planned.
