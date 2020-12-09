@@ -39,7 +39,7 @@ umount MOUNTPOINT
       |     |- in
       |     |- unread
       |
-      |- team1
+      |- team2
          |- channel1
          |  |- in
          |  |- unread
